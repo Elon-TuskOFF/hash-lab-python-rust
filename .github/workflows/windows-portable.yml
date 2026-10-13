@@ -68,9 +68,9 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" HashLab-Windows-Portable.zip --title "Hash Lab ${{ github.ref_name }}" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend." --verify-tag
+          gh release create v1.0.0 HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab v1.0.0" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
