@@ -20,26 +20,31 @@ class Window : public QWidget {
        "--algorithm",alg,"--workers",QString::number(workers->value())};
     if(engine->currentText()=="Python"){
 #ifdef Q_OS_WIN
-      program="python";
+      program=QFileInfo::exists(root+"/runtime/python/python.exe") ? root+"/runtime/python/python.exe" : "python";
 #else
       program="python3";
 #endif
       args.prepend(root+"/backend/python/engine.py");args.prepend("-u");
     } else {
 #ifdef Q_OS_WIN
-      program=root+"/backend/rust/target/release/hash_lab_rust.exe";
+      program=QFileInfo::exists(root+"/runtime/rust/hash_lab_rust.exe") ? root+"/runtime/rust/hash_lab_rust.exe" : root+"/backend/rust/target/release/hash_lab_rust.exe";
 #else
       program=root+"/backend/rust/target/release/hash_lab_rust";
 #endif
     }
     if(bench)args<<"--benchmark";else args<<"--target"<<target;
-    pending.clear();process.start(program,args);
+    pending.clear();process.setWorkingDirectory(root);process.start(program,args);
   }
 public:
   Window(){
-    QDir dir(QDir::currentPath());
+    QDir dir(QCoreApplication::applicationDirPath());
     for(int i=0;i<5&&!QFileInfo::exists(dir.filePath("backend/python/engine.py"));++i)dir.cdUp();
     root=dir.absolutePath();
+    if (!QFileInfo::exists(root+"/backend/python/engine.py")) {
+      QDir working(QDir::currentPath());
+      for(int i=0;i<5&&!QFileInfo::exists(working.filePath("backend/python/engine.py"));++i)working.cdUp();
+      if(QFileInfo::exists(working.filePath("backend/python/engine.py"))) root=working.absolutePath();
+    }
     setWindowTitle("Hash Lab | Python + Rust");resize(800,680);
     auto *ui=new QVBoxLayout(this);
     auto *heading=new QLabel("HASH LAB");heading->setObjectName("heading");ui->addWidget(heading);
