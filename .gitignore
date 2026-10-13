@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+backend/rust/target/
+backend/rust/Cargo.lock
+.vscode/
