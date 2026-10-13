@@ -45,12 +45,21 @@ public:
       for(int i=0;i<5&&!QFileInfo::exists(working.filePath("backend/python/engine.py"));++i)working.cdUp();
       if(QFileInfo::exists(working.filePath("backend/python/engine.py"))) root=working.absolutePath();
     }
-    setWindowTitle("Hash Lab | Python + Rust");resize(800,680);
+    setWindowTitle("Hash Lab | Python + Rust");resize(940,785);setMinimumSize(780,690);
     auto *ui=new QVBoxLayout(this);
+    ui->setContentsMargins(34,30,34,30);
+    ui->setSpacing(0);
     auto *heading=new QLabel("HASH LAB");heading->setObjectName("heading");ui->addWidget(heading);
-    ui->addWidget(new QLabel("OFFLINE HASH BENCHMARK   /   PYTHON + RUST"));
+    ui->addSpacing(14);
+    auto *subtitle=new QLabel("OFFLINE HASH BENCHMARK   /   PYTHON + RUST");
+    subtitle->setObjectName("subtitle");ui->addWidget(subtitle);
+    ui->addSpacing(34);
     auto *settings=new QGroupBox("SEARCH CONFIGURATION");ui->addWidget(settings);
     auto *form=new QFormLayout(settings);
+    form->setContentsMargins(26,30,26,25);
+    form->setVerticalSpacing(17);
+    form->setHorizontalSpacing(26);
+    form->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     engine=new QComboBox;engine->addItems({"Python","Rust"});form->addRow("Engine",engine);
     hashType=new QComboBox;
     hashType->addItems({"md5","sha1","sha224","sha256","sha384","sha512",
@@ -59,7 +68,7 @@ public:
     length=new QSpinBox;length->setRange(1,12);length->setValue(6);form->addRow("Length",length);
     workers=new QSpinBox;workers->setRange(1,128);workers->setValue(qMax(1,QThread::idealThreadCount()));
     form->addRow("CPU workers",workers);
-    auto *charRow=new QWidget;auto *c=new QHBoxLayout(charRow);c->setContentsMargins(0,0,0,0);
+    auto *charRow=new QWidget;auto *c=new QHBoxLayout(charRow);c->setContentsMargins(0,0,0,0);c->setSpacing(28);
     lower=new QCheckBox("a-z");upper=new QCheckBox("A-Z");
     numbers=new QCheckBox("0-9");symbols=new QCheckBox("!@#$%^&*_-");
     lower->setChecked(true);symbols->setChecked(true);
@@ -67,18 +76,22 @@ public:
     form->addRow("Character sets",charRow);
     digest=new QLineEdit("713417394e2b74aee7fa54d09375b0c78d288a90eba27a560cfc698c5b54886c");
     form->addRow("Target hash",digest);
-    auto *actions=new QHBoxLayout;
-    auto *preset=new QPushButton("Variant 5 preset");
-    start=new QPushButton("▶ Start");start->setObjectName("primary");
-    stop=new QPushButton("Stop");stop->setEnabled(false);
+    auto *actions=new QHBoxLayout;actions->setSpacing(12);
+    auto *preset=new QPushButton("↺  Variant 5 preset");preset->setObjectName("secondary");
+    start=new QPushButton("▶  Start search");start->setObjectName("primary");
+    stop=new QPushButton("■  Stop");stop->setObjectName("danger");stop->setEnabled(false);
+    for(auto *button : {preset,start,stop}) {button->setMinimumHeight(46);button->setCursor(Qt::PointingHandCursor);}
+    start->setMinimumWidth(152);stop->setMinimumWidth(95);
     actions->addWidget(preset);actions->addStretch();actions->addWidget(stop);actions->addWidget(start);
     form->addRow(actions);
+    ui->addSpacing(26);
     auto *monitor=new QGroupBox("LIVE PROGRESS");ui->addWidget(monitor);
     auto *v=new QVBoxLayout(monitor);
-    status=new QLabel("Ready.");v->addWidget(status);
+    v->setContentsMargins(26,32,26,24);v->setSpacing(18);
+    status=new QLabel("Ready to start a local search.");status->setObjectName("status");v->addWidget(status);
     bar=new QProgressBar;bar->setRange(0,10000);bar->setValue(0);v->addWidget(bar);
     info=new QLabel("Candidates: —     Speed: —     Estimated remaining: —");
-    info->setWordWrap(true);v->addWidget(info);
+    info->setObjectName("information");info->setWordWrap(true);v->addWidget(info);
     answer=new QLabel("Password: —");answer->setObjectName("answer");v->addWidget(answer);
     ui->addStretch();
     connect(preset,&QPushButton::clicked,this,[this]{
@@ -149,20 +162,41 @@ public:
         }
     });
     setStyleSheet(R"(
-       QWidget {background:#0d1424;color:#eef2ff;font:10pt 'Segoe UI';}
-       QLabel#heading {font-size:28pt;font-weight:bold;color:#8db0ff;}
-       QLabel#answer {font:14pt Consolas;color:#75e6c3;}
-       QGroupBox {background:#172239;border:1px solid #344664;border-radius:14px;
-          margin-top:15px;padding:18px;font-weight:bold;}
-       QGroupBox::title {subcontrol-origin:margin;left:16px;top:2px;}
-       QLineEdit,QSpinBox,QComboBox {background:#0f192e;border:1px solid #435679;
-          color:white;border-radius:7px;padding:8px;}
-       QComboBox QAbstractItemView {background:#1d2940;color:white;}
-       QPushButton {background:#2a3d5a;color:white;padding:10px;border-radius:8px;}
-       QPushButton#primary {background:#4c78ed;font-weight:bold;}
-       QPushButton:disabled {color:#7a8394;background:#1f283b;}
-       QProgressBar {background:#111c30;border:0;border-radius:7px;height:18px;}
-       QProgressBar::chunk {background:#5b85ff;border-radius:7px;}
+       QWidget {background:#08090C;color:#E8E9ED;font:10pt 'Segoe UI';}
+       QLabel {background:transparent;border:none;}
+       QLabel#heading {font-size:31pt;font-weight:800;color:#FAFAFC;letter-spacing:2px;}
+       QLabel#subtitle {font-size:10pt;color:#858B97;letter-spacing:1px;}
+       QLabel#status {font-size:10pt;color:#ADB9D5;font-weight:600;}
+       QLabel#information {font-size:10pt;color:#BFC4CF;}
+       QLabel#answer {font:14pt Consolas;color:#85E3BA;}
+       QGroupBox {background:#101216;border:1px solid #272A32;border-radius:16px;
+          margin-top:18px;padding:0;font-weight:700;color:#E9EAF0;}
+       QGroupBox::title {subcontrol-origin:margin;left:19px;top:0px;padding:0 10px;
+          background:#08090C;color:#DADCE4;font-size:10pt;}
+       QLineEdit,QSpinBox,QComboBox {background:#191C22;border:1px solid #343841;
+          color:#F5F6F8;border-radius:9px;padding:10px 13px;min-height:23px;
+          selection-background-color:#587AF2;}
+       QLineEdit:hover,QSpinBox:hover,QComboBox:hover {border:1px solid #555B67;}
+       QLineEdit:focus,QSpinBox:focus,QComboBox:focus {border:1px solid #7894F9;}
+       QComboBox QAbstractItemView {background:#1B1D23;color:#F5F6F8;
+          selection-background-color:#384B84;padding:5px;}
+       QCheckBox {background:transparent;spacing:9px;color:#CED1DA;}
+       QCheckBox::indicator {width:17px;height:17px;}
+       QPushButton {background:#242830;border:1px solid #383D48;color:#ECEEF4;
+          padding:11px 20px;border-radius:10px;font-weight:700;}
+       QPushButton:hover {background:#303641;border-color:#566076;}
+       QPushButton:pressed {background:#1A1D24;}
+       QPushButton#primary {background:#6D88F8;border:1px solid #7894FA;color:#0A0E19;}
+       QPushButton#primary:hover {background:#8FA6FF;border-color:#A0B4FF;}
+       QPushButton#primary:pressed {background:#526EE2;}
+       QPushButton#secondary {background:#202329;border:1px solid #373C46;color:#DDE0E9;}
+       QPushButton#secondary:hover {background:#30343E;border-color:#505764;}
+       QPushButton#danger {background:#2B2025;border:1px solid #62414A;color:#F4B3C1;}
+       QPushButton#danger:hover {background:#452931;border-color:#965968;}
+       QPushButton:disabled {background:#1B1D22;color:#676B75;border:1px solid #292D33;}
+       QProgressBar {background:#202329;border:0;border-radius:8px;height:19px;
+          text-align:center;color:#E5EAF5;font-weight:600;}
+       QProgressBar::chunk {background:#738CF4;border-radius:8px;}
     )");
   }
 };
