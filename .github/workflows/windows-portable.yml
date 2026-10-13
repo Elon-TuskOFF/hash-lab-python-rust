@@ -9,6 +9,7 @@ on:
       - 'backend/**'
       - 'CMakeLists.txt'
       - 'assets/**'
+      - 'tests/**'
       - '.github/workflows/windows-portable.yml'
   workflow_dispatch:
 
@@ -65,6 +66,9 @@ jobs:
           }
           & portable/runtime/python/python.exe portable/backend/python/engine.py --chars abc --length 2 --algorithm sha256 --workers 1 --benchmark
           & portable/runtime/rust/hash_lab_rust.exe --chars abc --length 2 --algorithm sha256 --workers 1 --benchmark
+      - name: Test cancellation for both engines
+        shell: pwsh
+        run: python tests/test_stop.py
       - name: Archive portable app
         shell: pwsh
         run: Compress-Archive -Path portable/* -DestinationPath HashLab-Windows-Portable.zip
@@ -80,8 +84,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v1.2.1 --json tagName 2>$null) {
-            gh release upload v1.2.1 HashLab-Windows-Portable.zip --clobber
+          if (gh release view v1.2.2 --json tagName 2>$null) {
+            gh release upload v1.2.2 HashLab-Windows-Portable.zip --clobber
           } else {
-            gh release create v1.2.1 HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab v1.2.1" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
+            gh release create v1.2.2 HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab v1.2.2" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
           }
