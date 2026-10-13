@@ -1,0 +1,25 @@
+name: Unpack project
+on:
+  push:
+    paths:
+      - '.github/workflows/unpack-project.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Extract app into repository root
+        run: |
+          unzip -oq hash_lab_dual.zip -d /tmp/hash-lab-extracted
+          cp -a /tmp/hash-lab-extracted/hash_lab_dual/. .
+          rm -f hash_lab_dual.zip
+          git add -A
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Unpack Python and Rust project sources"
+            git push
+          fi
