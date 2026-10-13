@@ -22,6 +22,24 @@ fn hash(s: &str, algorithm: &str) -> String {
         _ => String::new(),
     }
 }
+fn matches_hash(s: &str, algorithm: &str, target: &[u8]) -> bool {
+    let data = s.as_bytes();
+    match algorithm {
+        "md5" => md5::Md5::digest(data).as_slice() == target,
+        "sha1" => sha1::Sha1::digest(data).as_slice() == target,
+        "sha224" => sha2::Sha224::digest(data).as_slice() == target,
+        "sha256" => sha2::Sha256::digest(data).as_slice() == target,
+        "sha384" => sha2::Sha384::digest(data).as_slice() == target,
+        "sha512" => sha2::Sha512::digest(data).as_slice() == target,
+        "sha3_224" => sha3::Sha3_224::digest(data).as_slice() == target,
+        "sha3_256" => sha3::Sha3_256::digest(data).as_slice() == target,
+        "sha3_384" => sha3::Sha3_384::digest(data).as_slice() == target,
+        "sha3_512" => sha3::Sha3_512::digest(data).as_slice() == target,
+        "blake2s" => blake2::Blake2s256::digest(data).as_slice() == target,
+        "blake2b" => blake2::Blake2b512::digest(data).as_slice() == target,
+        _ => false,
+    }
+}
 fn argument(args: &[String], flag: &str, default: &str) -> String {
     args.windows(2).find(|a| a[0] == flag).map(|a| a[1].clone()).unwrap_or_else(|| default.to_string())
 }
@@ -44,6 +62,9 @@ fn main() {
     if hash("", &algorithm).len() != target.len() || !target.bytes().all(|b| b.is_ascii_hexdigit()) {
         println!("ERROR\tInvalid digest length or characters"); return;
     }
+    let expected: Vec<u8> = target.as_bytes().chunks_exact(2).map(|pair| {
+        u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap()
+    }).collect();
     let alphabet: Vec<char> = chars.chars().collect();
     let n = alphabet.len();
     let threads = workers.min(n);
@@ -59,7 +80,7 @@ fn main() {
     let start = Instant::now();
     let mut handles = Vec::new();
     for id in 0..threads {
-        let a = alphabet.clone(); let alg = algorithm.clone(); let t = target.clone();
+        let a = alphabet.clone(); let alg = algorithm.clone(); let t = expected.clone();
         let flag = stop.clone(); let counter = checked.clone(); let answer = found.clone();
         handles.push(thread::spawn(move || {
             let mut local = 0_u64;
@@ -71,7 +92,7 @@ fn main() {
                     candidate.push(a[first]);
                     for &j in &indices { candidate.push(a[j]); }
                     local += 1;
-                    if hash(&candidate, &alg) == t {
+                    if matches_hash(&candidate, &alg, &t) {
                         *answer.lock().unwrap() = Some(candidate);
                         flag.store(true, Ordering::Relaxed);
                         break;
