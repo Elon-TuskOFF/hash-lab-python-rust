@@ -8,6 +8,7 @@ on:
       - 'src/**'
       - 'backend/**'
       - 'CMakeLists.txt'
+      - 'assets/**'
       - '.github/workflows/windows-portable.yml'
   workflow_dispatch:
 
@@ -25,6 +26,11 @@ jobs:
           version: '6.8.3'
           arch: win64_msvc2022_64
           cache: true
+      - name: Generate Windows icon
+        shell: pwsh
+        run: |
+          python -m pip install Pillow
+          python assets/generate_icon.py
       - name: Build C++ UI
         shell: pwsh
         run: |
@@ -40,6 +46,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force portable/runtime/python,portable/runtime/rust,portable/backend/python | Out-Null
           Copy-Item build/Release/HashLab.exe portable/HashLab.exe
+          Copy-Item assets/hashlab.ico portable/hashlab.ico
           Copy-Item backend/python/engine.py portable/backend/python/engine.py
           Copy-Item backend/rust/target/release/hash_lab_rust.exe portable/runtime/rust/hash_lab_rust.exe
           & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations --compiler-runtime portable/HashLab.exe
@@ -53,7 +60,7 @@ jobs:
       - name: Validate packaged files
         shell: pwsh
         run: |
-          @('HashLab.exe','runtime/python/python.exe','runtime/rust/hash_lab_rust.exe','backend/python/engine.py','Qt6Core.dll','Qt6Widgets.dll') | ForEach-Object {
+          @('HashLab.exe','hashlab.ico','runtime/python/python.exe','runtime/rust/hash_lab_rust.exe','backend/python/engine.py','Qt6Core.dll','Qt6Widgets.dll') | ForEach-Object {
             if (!(Test-Path "portable/$_")) { throw "Missing $_" }
           }
           & portable/runtime/python/python.exe portable/backend/python/engine.py --chars abc --length 2 --algorithm sha256 --workers 1 --benchmark
@@ -73,4 +80,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v1.1.0 HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab v1.1.0" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
+          gh release create v1.2.0 HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab v1.2.0" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
