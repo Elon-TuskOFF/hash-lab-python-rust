@@ -46,8 +46,16 @@ public:
       if(QFileInfo::exists(working.filePath("backend/python/engine.py"))) root=working.absolutePath();
     }
     setWindowIcon(QIcon(QCoreApplication::applicationDirPath()+"/hashlab.ico"));
-    setWindowTitle("Hash Lab | Python + Rust");resize(940,785);setMinimumSize(780,690);
-    auto *ui=new QVBoxLayout(this);
+    setWindowTitle("Hash Lab | Python + Rust");resize(970,930);setMinimumSize(790,730);
+    auto *windowLayout=new QVBoxLayout(this);
+    windowLayout->setContentsMargins(0,0,0,0);
+    auto *scroll=new QScrollArea(this);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto *content=new QWidget;
+    content->setObjectName("content");
+    auto *ui=new QVBoxLayout(content);
     ui->setContentsMargins(34,30,34,30);
     ui->setSpacing(0);
     auto *heading=new QLabel("HASH LAB");heading->setObjectName("heading");ui->addWidget(heading);
@@ -57,8 +65,9 @@ public:
     ui->addSpacing(34);
     auto *settings=new QGroupBox("SEARCH CONFIGURATION");ui->addWidget(settings);
     auto *form=new QFormLayout(settings);
+    settings->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
     form->setContentsMargins(26,30,26,25);
-    form->setVerticalSpacing(17);
+    form->setVerticalSpacing(16);
     form->setHorizontalSpacing(26);
     form->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
@@ -71,8 +80,10 @@ public:
     auto counter=[&](QSpinBox *spin)->QWidget* {
       spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
       spin->setAlignment(Qt::AlignCenter);
-      spin->setMinimumHeight(46);
+      spin->setFixedHeight(46);
       auto *wrapper=new QWidget; wrapper->setObjectName("counterWrap");
+      wrapper->setFixedHeight(48);
+      wrapper->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
       auto *line=new QHBoxLayout(wrapper);
       line->setSpacing(8); line->setContentsMargins(0,0,0,0);
       auto *minus=new QPushButton("−"); auto *plus=new QPushButton("+");
@@ -103,11 +114,15 @@ public:
     length=new QSpinBox;length->setRange(1,12);length->setValue(6);addField("Length",counter(length));
     workers=new QSpinBox;workers->setRange(1,128);workers->setValue(qMax(1,QThread::idealThreadCount()));
     addField("CPU workers",counter(workers));
-    auto *charRow=new QWidget;auto *c=new QHBoxLayout(charRow);c->setContentsMargins(0,17,0,17);c->setSpacing(32);
+    auto *charRow=new QWidget;charRow->setObjectName("charRow");
+    charRow->setMinimumHeight(76);
+    charRow->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
+    auto *c=new QHBoxLayout(charRow);c->setContentsMargins(0,19,0,19);c->setSpacing(32);
     lower=new QCheckBox("a-z");upper=new QCheckBox("A-Z");
     numbers=new QCheckBox("0-9");symbols=new QCheckBox("!@#$%^&*_-");
     lower->setChecked(true);symbols->setChecked(true);
-    for(auto *cb:{lower,upper,numbers,symbols})c->addWidget(cb);
+    for(auto *cb:{lower,upper,numbers,symbols}) {cb->setMinimumHeight(34);c->addWidget(cb);}
+    c->addStretch();
     addField("Character sets",charRow);
     digest=new QLineEdit("713417394e2b74aee7fa54d09375b0c78d288a90eba27a560cfc698c5b54886c");
     addField("Target hash",digest);
@@ -129,6 +144,8 @@ public:
     info->setObjectName("information");info->setWordWrap(true);v->addWidget(info);
     answer=new QLabel("Password: —");answer->setObjectName("answer");v->addWidget(answer);
     ui->addStretch();
+    scroll->setWidget(content);
+    windowLayout->addWidget(scroll);
     connect(preset,&QPushButton::clicked,this,[this]{
        lower->setChecked(true);upper->setChecked(false);numbers->setChecked(false);
        symbols->setChecked(true);length->setValue(6);hashType->setCurrentText("blake2s");
@@ -198,6 +215,8 @@ public:
     });
     setStyleSheet(R"(
        QWidget {background:#08090C;color:#E8E9ED;font:10pt 'Segoe UI';}
+       QWidget#counterWrap, QWidget#charRow {background:transparent;}
+       QScrollArea {background:#08090C;border:none;}
        QLabel {background:transparent;border:none;}
        QLabel#formLabel {color:#D0D2D9;font-weight:500;padding:0;}
        QLabel#heading {font-size:31pt;font-weight:800;color:#FAFAFC;letter-spacing:2px;}
@@ -222,7 +241,7 @@ public:
           padding:11px 20px;border-radius:10px;font-weight:700;}
        QPushButton:hover {background:#303641;border-color:#566076;}
        QPushButton:pressed {background:#1A1D24;}
-       QPushButton#counterButton {background:#252930;border:1px solid #3C414B;
+       QPushButton#counterButton {min-width:46px;min-height:46px;max-width:46px;max-height:46px;background:#252930;border:1px solid #3C414B;
           border-radius:10px;color:#E6E8EE;padding:0;font-size:18pt;font-weight:600;}
        QPushButton#counterButton:hover {background:#373F4A;border-color:#78869D;}
        QPushButton#counterButton:pressed {background:#4F5D76;}
