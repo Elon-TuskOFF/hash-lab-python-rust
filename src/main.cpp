@@ -45,6 +45,7 @@ public:
       for(int i=0;i<5&&!QFileInfo::exists(working.filePath("backend/python/engine.py"));++i)working.cdUp();
       if(QFileInfo::exists(working.filePath("backend/python/engine.py"))) root=working.absolutePath();
     }
+    setWindowIcon(QIcon(QCoreApplication::applicationDirPath()+"/hashlab.ico"));
     setWindowTitle("Hash Lab | Python + Rust");resize(940,785);setMinimumSize(780,690);
     auto *ui=new QVBoxLayout(this);
     ui->setContentsMargins(34,30,34,30);
@@ -60,22 +61,56 @@ public:
     form->setVerticalSpacing(17);
     form->setHorizontalSpacing(26);
     form->setLabelAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    engine=new QComboBox;engine->addItems({"Python","Rust"});form->addRow("Engine",engine);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    auto addField=[&](const QString &text,QWidget *control){
+      auto *label=new QLabel(text); label->setObjectName("formLabel");
+      label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+      label->setMinimumHeight(46);
+      form->addRow(label,control);
+    };
+    auto counter=[&](QSpinBox *spin)->QWidget* {
+      spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
+      spin->setAlignment(Qt::AlignCenter);
+      spin->setMinimumHeight(46);
+      auto *wrapper=new QWidget; wrapper->setObjectName("counterWrap");
+      auto *line=new QHBoxLayout(wrapper);
+      line->setSpacing(8); line->setContentsMargins(0,0,0,0);
+      auto *minus=new QPushButton("−"); auto *plus=new QPushButton("+");
+      minus->setObjectName("counterButton"); plus->setObjectName("counterButton");
+      for (auto *button:{minus,plus}) {
+        button->setFixedSize(46,46);
+        button->setCursor(Qt::PointingHandCursor);
+        button->setAutoRepeat(true);
+        button->setAutoRepeatDelay(350);
+        button->setAutoRepeatInterval(75);
+      }
+      QObject::connect(minus,&QPushButton::clicked,spin,[spin]{spin->stepDown();});
+      QObject::connect(plus,&QPushButton::clicked,spin,[spin]{spin->stepUp();});
+      QObject::connect(spin,QOverload<int>::of(&QSpinBox::valueChanged),wrapper,[=](int value){
+        minus->setEnabled(value>spin->minimum());
+        plus->setEnabled(value<spin->maximum());
+      });
+      minus->setEnabled(spin->value()>spin->minimum());
+      plus->setEnabled(spin->value()<spin->maximum());
+      line->addWidget(minus); line->addWidget(spin,1); line->addWidget(plus);
+      return wrapper;
+    };
+    engine=new QComboBox;engine->addItems({"Python","Rust"});addField("Engine",engine);
     hashType=new QComboBox;
     hashType->addItems({"md5","sha1","sha224","sha256","sha384","sha512",
       "sha3_224","sha3_256","sha3_384","sha3_512","blake2s","blake2b"});
-    hashType->setCurrentText("blake2s");form->addRow("Hash algorithm",hashType);
-    length=new QSpinBox;length->setRange(1,12);length->setValue(6);form->addRow("Length",length);
+    hashType->setCurrentText("blake2s");addField("Hash algorithm",hashType);
+    length=new QSpinBox;length->setRange(1,12);length->setValue(6);addField("Length",counter(length));
     workers=new QSpinBox;workers->setRange(1,128);workers->setValue(qMax(1,QThread::idealThreadCount()));
-    form->addRow("CPU workers",workers);
-    auto *charRow=new QWidget;auto *c=new QHBoxLayout(charRow);c->setContentsMargins(0,0,0,0);c->setSpacing(28);
+    addField("CPU workers",counter(workers));
+    auto *charRow=new QWidget;auto *c=new QHBoxLayout(charRow);c->setContentsMargins(0,17,0,17);c->setSpacing(32);
     lower=new QCheckBox("a-z");upper=new QCheckBox("A-Z");
     numbers=new QCheckBox("0-9");symbols=new QCheckBox("!@#$%^&*_-");
     lower->setChecked(true);symbols->setChecked(true);
     for(auto *cb:{lower,upper,numbers,symbols})c->addWidget(cb);
-    form->addRow("Character sets",charRow);
+    addField("Character sets",charRow);
     digest=new QLineEdit("713417394e2b74aee7fa54d09375b0c78d288a90eba27a560cfc698c5b54886c");
-    form->addRow("Target hash",digest);
+    addField("Target hash",digest);
     auto *actions=new QHBoxLayout;actions->setSpacing(12);
     auto *preset=new QPushButton("↺  Variant 5 preset");preset->setObjectName("secondary");
     start=new QPushButton("▶  Start search");start->setObjectName("primary");
@@ -164,6 +199,7 @@ public:
     setStyleSheet(R"(
        QWidget {background:#08090C;color:#E8E9ED;font:10pt 'Segoe UI';}
        QLabel {background:transparent;border:none;}
+       QLabel#formLabel {color:#D0D2D9;font-weight:500;padding:0;}
        QLabel#heading {font-size:31pt;font-weight:800;color:#FAFAFC;letter-spacing:2px;}
        QLabel#subtitle {font-size:10pt;color:#858B97;letter-spacing:1px;}
        QLabel#status {font-size:10pt;color:#ADB9D5;font-weight:600;}
@@ -186,6 +222,11 @@ public:
           padding:11px 20px;border-radius:10px;font-weight:700;}
        QPushButton:hover {background:#303641;border-color:#566076;}
        QPushButton:pressed {background:#1A1D24;}
+       QPushButton#counterButton {background:#252930;border:1px solid #3C414B;
+          border-radius:10px;color:#E6E8EE;padding:0;font-size:18pt;font-weight:600;}
+       QPushButton#counterButton:hover {background:#373F4A;border-color:#78869D;}
+       QPushButton#counterButton:pressed {background:#4F5D76;}
+       QPushButton#counterButton:disabled {color:#666B76;background:#1B1D22;border-color:#292D33;}
        QPushButton#primary {background:#6D88F8;border:1px solid #7894FA;color:#0A0E19;}
        QPushButton#primary:hover {background:#8FA6FF;border-color:#A0B4FF;}
        QPushButton#primary:pressed {background:#526EE2;}
