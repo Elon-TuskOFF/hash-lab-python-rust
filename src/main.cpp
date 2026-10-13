@@ -13,6 +13,7 @@ class Window : public QWidget {
   QString root, chars, alg, target;
   double total=1;
   bool bench=false, cancelled=false;
+  qint64 stoppingPid=0;
   void run(bool benchmark){
     bench=benchmark;
     QString program;
@@ -33,6 +34,7 @@ class Window : public QWidget {
 #endif
     }
     if(bench)args<<"--benchmark";else args<<"--target"<<target;
+    stoppingPid=0;
     pending.clear();process.setWorkingDirectory(root);process.start(program,args);
   }
 public:
@@ -171,8 +173,27 @@ public:
        run(true);
     });
     connect(stop,&QPushButton::clicked,this,[this]{
-       cancelled=true;status->setText("Stopping...");
-       if(bench)process.kill();else process.write("STOP\n");
+       if(cancelled)return;
+       cancelled=true;stop->setEnabled(false);
+       status->setText("Stopping workers...");
+       if(process.state()==QProcess::NotRunning){return;}
+       const qint64 pid=process.processId();
+       stoppingPid=pid;
+       // First request cooperative cancellation. Escalate if the workers do not exit.
+       if(bench)process.kill();
+       else {process.write("STOP\n");process.waitForBytesWritten(100);}
+       QTimer::singleShot(1800,this,[this,pid]{
+         if(!cancelled || process.state()==QProcess::NotRunning || process.processId()!=pid)return;
+#ifdef Q_OS_WIN
+         // Python multiprocessing leaves child workers alive when only the parent is killed.
+         QProcess::startDetached("taskkill", {"/PID",QString::number(pid),"/T","/F"});
+#else
+         process.kill();
+#endif
+         QTimer::singleShot(1300,this,[this,pid]{
+           if(process.state()!=QProcess::NotRunning && process.processId()==pid)process.kill();
+         });
+       });
     });
     connect(&process,&QProcess::readyReadStandardOutput,this,[this]{
        pending+=process.readAllStandardOutput();
@@ -192,8 +213,10 @@ public:
               "  |  "+QString::number(r,'f',0)+" hashes/s  |  Remaining ~"+
               QString::number((total-n)/qMax(1.0,r),'f',1)+" sec");
          }else if(parts[0]=="DONE"&&parts.size()>4){
-           answer->setText("Password: "+(parts[1].isEmpty()?"Not found":parts[1]));
-           status->setText("Finished.");
+           if(!cancelled){
+             answer->setText("Password: "+(parts[1].isEmpty()?"Not found":parts[1]));
+             status->setText("Finished.");
+           }
          }else if(parts[0]=="ERROR")status->setText(parts.join(" "));
        }
     });
