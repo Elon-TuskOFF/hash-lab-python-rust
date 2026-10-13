@@ -1,0 +1,67 @@
+name: Build portable Windows app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'backend/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/windows-portable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: win64_msvc2022_64
+          cache: true
+      - name: Build C++ UI
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
+          cmake --build build --config Release --parallel
+      - name: Build Rust engine
+        shell: pwsh
+        run: |
+          cd backend/rust
+          cargo build --release
+      - name: Create portable directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force portable/runtime/python,portable/runtime/rust,portable/backend/python | Out-Null
+          Copy-Item build/Release/HashLab.exe portable/HashLab.exe
+          Copy-Item backend/python/engine.py portable/backend/python/engine.py
+          Copy-Item backend/rust/target/release/hash_lab_rust.exe portable/runtime/rust/hash_lab_rust.exe
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-translations --compiler-runtime portable/HashLab.exe
+      - name: Bundle embedded Python
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "python-embed.zip"
+          Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip' -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath portable/runtime/python
+          Set-Content -Path portable/runtime/python/python312._pth -Value @('python312.zip','.','import site') -Encoding ascii
+      - name: Validate packaged files
+        shell: pwsh
+        run: |
+          @('HashLab.exe','runtime/python/python.exe','runtime/rust/hash_lab_rust.exe','backend/python/engine.py','Qt6Core.dll','Qt6Widgets.dll') | ForEach-Object {
+            if (!(Test-Path "portable/$_")) { throw "Missing $_" }
+          }
+          & portable/runtime/python/python.exe portable/backend/python/engine.py --chars abc --length 2 --algorithm sha256 --workers 1 --benchmark
+          & portable/runtime/rust/hash_lab_rust.exe --chars abc --length 2 --algorithm sha256 --workers 1 --benchmark
+      - name: Archive portable app
+        shell: pwsh
+        run: Compress-Archive -Path portable/* -DestinationPath HashLab-Windows-Portable.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HashLab-Windows-Portable
+          path: HashLab-Windows-Portable.zip
+          if-no-files-found: error
