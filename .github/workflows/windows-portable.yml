@@ -89,6 +89,4 @@ jobs:
             gh release upload $tag HashLab-Windows-Portable.zip --clobber
           } else {
             gh release create $tag HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab $tag" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
-          } else {
-            gh release create v1.2.2 HashLab-Windows-Portable.zip --target "${{ github.sha }}" --title "Hash Lab v1.2.2" --notes "Portable Windows x64 release. Extract and launch HashLab.exe. Includes Qt libraries, Python runtime, and Rust backend."
-          }
+
