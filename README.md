@@ -1,64 +1,84 @@
-# Hash Lab — Python + Rust
+# Hash Lab
 
-A small **Windows-friendly Tkinter desktop app** for educational, local brute-force searches of **unsalted test hashes**. The same interface controls either a Python multiprocessing backend or a Rust multithreading backend. No web service, passwords, or hashes are uploaded.
+**Hash Lab** — навчальна настільна програма для дослідження підбору паролів за хешем методом повного перебору (brute force) та порівняння паралельних обчислень у **Python** і **Rust**.
 
-## Features
+Графічний інтерфейс написаний на **C++ / Qt 6**. Обчислення виконуються локально: Python використовує `multiprocessing` (окремі процеси), Rust — системні потоки. Інтернет для роботи програми не потрібний.
 
-- Switch between **Python** and **Rust** in one app.
-- Choose lowercase, uppercase, digits, and `!@#$%^&*_-` character sets.
-- Choose hash: MD5, SHA-1, SHA-224/256/384/512, SHA3-224/256/384/512, BLAKE2s/BLAKE2b.
-- Set test-password length (1–12) and CPU worker count (1–128).
-- Display full keyspace, sampled hash-speed estimate, live progress, observed speed, elapsed time, remaining-time estimate, and match.
-- Stop button and **Variant 5** preset from the provided lab instructions: length **6**, `abcdefghijklmnopqrstuvwxyz!@#$%^&*_-`, **BLAKE2s**, target `713417394e2b74aee7fa54d09375b0c78d288a90eba27a560cfc698c5b54886c`.
+## Завантаження для Windows
 
-## Windows setup
+**[Завантажити останній реліз](https://github.com/Elon-TuskOFF/hash-lab-python-rust/releases/latest)**
 
-Install **Python 3.10+** and (to use Rust) **Rust via rustup**. Make sure `python` and `cargo` are on PATH. Open PowerShell **inside the repository directory**:
+1. Завантажте файл `HashLab-Windows-Portable.zip` з розділу **Assets**.
+2. Повністю розпакуйте архів у будь-яку папку.
+3. Запустіть `HashLab.exe`.
+
+**Не потрібно окремо встановлювати Python, Rust або Qt.** У portable-архіві є потрібні бібліотеки та рушії. Не переміщуйте один `HashLab.exe` окремо від інших файлів архіву.
+
+Цільова платформа: **Windows 10/11 x64**. Це portable-папка, а не один автономний EXE.
+
+## Можливості
+
+- Вибір обчислювального рушія: **Python** або **Rust**.
+- Набори символів: `a-z`, `A-Z`, `0-9`, `!@#$%^&*_-`.
+- Хеш-функції: MD5, SHA-1, SHA-224/256/384/512, SHA3-224/256/384/512, BLAKE2s, BLAKE2b.
+- Довжина пароля від 1 до 12 символів та вибір кількості робочих процесів/потоків від 1 до 128.
+- Індикатор прогресу, кількість перевірених комбінацій, швидкість перевірки та приблизний залишковий час.
+- Кнопка **Stop** для зупинки пошуку; на Windows у разі зависання передбачене примусове завершення процесів.
+- Швидке завантаження умов **варіанта №5**.
+
+**Примітка:** поле **Password** відображає знайдений пароль, а не поточну перевірювану комбінацію. До знаходження збігу воно не змінюється.
+
+## Лабораторна робота — варіант №5
+
+| Параметр | Значення |
+| --- | --- |
+| Довжина | 6 |
+| Набір символів | малі англійські літери та спеціальні символи |
+| Хеш-функція | BLAKE2s |
+| Хеш | `713417394e2b74aee7fa54d09375b0c78d288a90eba27a560cfc698c5b54886c` |
+
+Натисніть **Variant 5 preset**, виберіть кількість працівників і рушій та запустіть пошук. Для порівняння однопроцесорного і паралельного варіантів використовуйте **1** та декілька робочих процесів/потоків і порівнюйте фактично виміряний час.
+
+## Як працює оцінка часу
+
+Кількість комбінацій для фіксованої довжини: `N = alphabet_size ^ password_length`.
+
+Приблизний максимальний час повного перебору: `N / candidates_per_second`. Початкова оцінка базується на короткому тесті швидкості хешування; надалі використовується фактична швидкість обробки. Оцінки можуть відрізнятися від реального часу через запуск процесів, частоту процесора, кількість робітників і розташування пароля серед кандидатів.
+
+Більше робітників **не завжди** означає пропорційне прискорення. Вибрана кількість робітників — це не показник фізичних ядер CPU.
+
+## Збирання з вихідного коду (для розробників)
+
+Потрібні **Qt 6 Widgets**, **CMake 3.21+**, компілятор C++17, **Python 3** та **Rust/Cargo**. Для Windows рекомендується Qt 6 з MSVC 2022 x64.
 
 ```powershell
-python app.py
-```
-
-Python mode works immediately and requires **no pip packages**.
-
-For the Rust mode, compile once:
-
-```powershell
-cd backend\rust
+cmake -S . -B build
+cmake --build build --config Release
+cd backend/rust
 cargo build --release
-cd ..\..
-python app.py
+cd ../..
 ```
 
-Use the **Engine** dropdown to choose Python or Rust. For a single CPU worker, set `CPU workers = 1`; for multiple workers, choose your logical CPU count. Each mode uses separate CPU threads/processes (not the GPU).
+Після збирання запускайте C++ застосунок із каталогу проєкту або з каталогу, у якому доступна структура `backend/`. Для portable-збірки потрібні упаковані Qt-бібліотеки, Python-runtime і Rust executable — усе це автоматизовано в GitHub Actions.
 
-## Linux
-
-Install `python3-tk` if needed. Run `python3 app.py`. Build the Rust backend with `cd backend/rust && cargo build --release`.
-
-## How to try a quick test
-
-1. Select Python and SHA-256.
-2. Choose only lowercase letters, length 3.
-3. Click **Generate test hash**, type `cat`, and press **Start search**. The candidate `cat` should be found quickly.
-4. Select Rust (after compiling) to compare.
-
-The **full search estimate** is `charset_size ^ length / measured_hashes_per_second`, approximating the worst case. Expected average time for uniformly random passwords is about half the full-search figure. Early estimates are approximate because startup overhead, process contention, OS scheduling, and candidate construction vary. For very large keyspaces the app can run for hours or longer.
-
-## Project layout
+## Структура репозиторію
 
 ```text
-app.py                    # Tkinter front end
-backend/python/engine.py  # Python multiprocessing backend
-backend/rust/Cargo.toml   # Rust dependencies
-backend/rust/src/main.rs  # Rust threaded backend
+src/main.cpp                       # C++ / Qt інтерфейс
+backend/python/engine.py           # Python multiprocessing
+backend/rust/Cargo.toml            # Залежності Rust
+backend/rust/src/main.rs           # Rust threading
+assets/generate_icon.py            # Генерація іконки
+assets/app.rc                      # Windows icon resource
+tests/test_stop.py                 # Тест зупинки обох рушіїв
+CMakeLists.txt                     # Налаштування C++ збірки
+.github/workflows/windows-portable.yml  # Windows portable CI
 ```
 
-## Notes
+## Обмеження і безпека
 
-The CPU count from `os.cpu_count()` represents logical processors and might be larger than physical cores. More workers does not necessarily mean a proportional speed-up. Python uses separate processes to avoid the CPython GIL limiting CPU-bound threads; Rust uses native OS threads.
+Це навчальна програма для **локальних несолоних хешів**. Вона не є інструментом для підбору облікових даних онлайн і не реалізує сучасні схеми зберігання паролів (Argon2, bcrypt, scrypt). Використовуйте її лише для власних тестових даних або за наявності дозволу. MD5 та SHA-1 підтримуються для навчальних цілей, але не підходять для безпечного зберігання паролів.
 
-This educational exercise models **offline raw hashes only** and not modern salted, slow password-storage methods such as Argon2, bcrypt, or scrypt. Only test hashes you create or are authorized to analyze. 
-MD5 and SHA-1 are offered for lab compatibility, not recommended for secure password storage.
-MD5 and BLAKE2 functionality is from libraries. The backends benchmark the digest function only; real exhaustive scanning also has candidate-generation and coordination costs.
-MD5, SHA-1, etc. names in the dropdown denote raw algorithms with UTF-8 input.
+## Ліцензія
+
+Окрему ліцензію наразі не додано. Права на програму зберігаються за автором репозиторію.
