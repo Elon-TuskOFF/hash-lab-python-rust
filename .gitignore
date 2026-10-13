@@ -3,3 +3,7 @@ __pycache__/
 backend/rust/target/
 backend/rust/Cargo.lock
 .vscode/
+build/
+portable/
+HashLab-Windows-Portable.zip
+*.user
